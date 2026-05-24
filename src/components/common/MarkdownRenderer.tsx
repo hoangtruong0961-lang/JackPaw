@@ -452,6 +452,8 @@ ${code}
   muttering: ({ children, ...props }: any) => <span className="italic text-[11px] opacity-75" {...sanitizeProps(props)}>{children}</span>,
   quote: ({ children, ...props }: any) => <blockquote className="border-l-4 border-mystic-accent/30 pl-4 py-2 my-4 italic bg-stone-200/30 dark:bg-slate-800/30 rounded-r" {...sanitizeProps(props)}>{children}</blockquote>,
   dice: ({ children, ...props }: any) => <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30" {...sanitizeProps(props)}>🎲 {children}</span>,
+  conversation: ({ children, ...props }: any) => <div className="p-3 my-2 border border-stone-200/50 dark:border-stone-800 bg-stone-100/30 dark:bg-stone-900/10 rounded-lg" {...sanitizeProps(props)}>{children}</div>,
+  safe: ({ children, ...props }: any) => <div className="p-3 my-2 border border-stone-200/50 dark:border-stone-800 bg-stone-100/30 dark:bg-stone-900/10 rounded-lg" {...sanitizeProps(props)}>{children}</div>,
   
   font: ({ color, children, ...props }: any) => <span style={{ color: color || undefined }} {...sanitizeProps(props)}>{children}</span>,
   
@@ -702,6 +704,19 @@ ${code}
       />
     );
   },
+  status_format: ({ children }: any) => <span className="status-format font-mono text-stone-300 bg-stone-850/40 px-1 rounded">{children}</span>,
+  'status-format': ({ children }: any) => <span className="status-format font-mono text-stone-300 bg-stone-850/40 px-1 rounded">{children}</span>,
+  comprehensive_now_status: ({ children }: any) => <span className="comprehensive-now-status font-mono text-stone-300 bg-stone-850/40 px-1 rounded">{children}</span>,
+  'comprehensive-now-status': ({ children }: any) => <span className="comprehensive-now-status font-mono text-stone-300 bg-stone-850/40 px-1 rounded">{children}</span>,
+  newspaper_status_format: ({ children }: any) => <span className="newspaper-status-format font-mono text-stone-300 bg-stone-850/40 px-1 rounded">{children}</span>,
+  'newspaper-status-format': ({ children }: any) => <span className="newspaper-status-format font-mono text-stone-300 bg-stone-850/40 px-1 rounded">{children}</span>,
+  user_now_status: ({ children }: any) => <span className="user-now-status font-mono text-stone-300 bg-stone-850/40 px-1 rounded">{children}</span>,
+  'user-now-status': ({ children }: any) => <span className="user-now-status font-mono text-stone-300 bg-stone-850/40 px-1 rounded">{children}</span>,
+  NPC_status: ({ children }: any) => <span className="npc-status font-mono text-stone-300 bg-stone-850/40 px-1 rounded">{children}</span>,
+  npc_status: ({ children }: any) => <span className="npc-status font-mono text-stone-300 bg-stone-850/40 px-1 rounded">{children}</span>,
+  'npc-status': ({ children }: any) => <span className="npc-status font-mono text-stone-300 bg-stone-850/40 px-1 rounded">{children}</span>,
+  status_2: ({ children }: any) => <span className="status-2 font-mono text-stone-300 bg-stone-850/40 px-1 rounded">{children}</span>,
+  'status-2': ({ children }: any) => <span className="status-2 font-mono text-stone-300 bg-stone-850/40 px-1 rounded">{children}</span>,
 };
 
 /**
@@ -1552,7 +1567,11 @@ const IframeSandboxWidget = ({ contentAttr }: { contentAttr: string }) => {
                         {msg.role === 'model' ? (
                           <div className="flex flex-col">
                             <div className="prose prose-sm prose-invert max-w-none text-stone-200 break-words font-sans space-y-1">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                              <ReactMarkdown 
+                                remarkPlugins={[remarkGfm]} 
+                                rehypePlugins={[rehypeRaw]}
+                                components={markdownComponents}
+                              >
                                 {msg.text}
                               </ReactMarkdown>
                             </div>

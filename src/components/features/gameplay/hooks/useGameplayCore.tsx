@@ -625,6 +625,85 @@ export const useGameplayCore = ({
           console.error('[TavernHelper Bridge] updateVariablesWith error:', e);
         }
         return true;
+      },
+      updateWorldbookWith: async (name: string, data: any) => {
+        console.log('[TavernHelper] updateWorldbookWith called:', name, data);
+        if (!name) return false;
+        
+        try {
+          const { tavoApi } = await import('../../../../services/api/tavoApi');
+          
+          let wbIdx = tavernHelperCache.worldbooks.findIndex((wb: any) => wb.name === name || wb.id === name);
+          
+          let entriesArray: any[] = [];
+          if (Array.isArray(data)) {
+            entriesArray = data;
+          } else if (data && typeof data === 'object') {
+            if (Array.isArray(data.entries)) {
+              entriesArray = data.entries;
+            } else if (data.entries && typeof data.entries === 'object') {
+              entriesArray = Object.values(data.entries);
+            } else {
+              entriesArray = Object.values(data);
+            }
+          }
+
+          const entriesRecord: Record<string, any> = {};
+          entriesArray.forEach((e: any, i: number) => {
+             const uid = e.uid || e.identifier || String(i);
+             entriesRecord[uid] = {
+               uid,
+               key: e.key || e.keys || [],
+               comment: e.comment || '',
+               content: e.content || e.value || '',
+               enabled: e.enabled !== false,
+               ...e
+             };
+          });
+
+          let updatedBook: any;
+          if (wbIdx !== -1) {
+            updatedBook = {
+               ...tavernHelperCache.worldbooks[wbIdx],
+               entries: entriesArray
+            };
+            tavernHelperCache.worldbooks[wbIdx] = updatedBook;
+            await tavoApi.lorebook.update(updatedBook);
+          } else {
+            updatedBook = {
+               id: name.toLowerCase().replace(/\s+/g, '_') || Date.now().toString(),
+               name: name,
+               entries: entriesArray
+            };
+            tavernHelperCache.worldbooks.push(updatedBook);
+            await tavoApi.lorebook.create(updatedBook);
+          }
+
+          const activeWorld = activeWorldRef.current;
+          if (activeWorld) {
+            const currentChatInfo = await tavoApi.chat.current();
+            const activeLobNames = currentChatInfo?.lorebooks?.map((l: any) => l.name) || [];
+            
+            if (activeLobNames.includes(name) || activeLobNames.length === 0) {
+              const updatedLorebookObj = {
+                 name: name,
+                 entries: entriesRecord
+              };
+              
+              if (onUpdateWorld) {
+                 onUpdateWorld({
+                    lorebook: updatedLorebookObj
+                 });
+              }
+            }
+          }
+
+          window.dispatchEvent(new CustomEvent('tavo_lorebooks_updated', { detail: { name, data: updatedBook } }));
+          return true;
+        } catch (e) {
+          console.error('[TavernHelper Bridge] updateWorldbookWith error:', e);
+          return false;
+        }
       }
     };
 
@@ -1237,6 +1316,14 @@ export const useGameplayCore = ({
              onUpdateWorld({ player: { ...activeWorldRef.current.player, ...payload } });
           }
           break;
+        case "UPDATE_WORLDBOOK":
+        case "UPDATE_LOREBOOK":
+          if (payload) {
+             const wbName = payload.name || payload.worldbook || "Active Worldbook";
+             const wbData = payload.data || payload.entries || payload;
+             tavernHelper.updateWorldbookWith(wbName, wbData);
+          }
+          break;
         case "TOAST":
           toast(payload?.message || payload);
           break;
@@ -1589,14 +1676,15 @@ export const useGameplayCore = ({
 
     // Helper to add entity if not exists
     const addEntityIfNew = (
-      name: string,
+      rawName: string,
       type: Entity["type"],
       description?: string,
     ) => {
-      if (!name || name.trim() === "" || name.length < 2) return;
+      const name = rawName ? rawName.trim() : "";
+      if (!name || name === "" || name.length < 2) return;
 
       // CẢI TIẾN: Không thêm người chơi (PC) vào danh sách thực thể NPC
-      const playerName = activeWorld.player.name;
+      const playerName = activeWorld.player?.name ? activeWorld.player.name.trim() : "";
       if (
         playerName &&
         (name.toLowerCase() === playerName.toLowerCase() ||
@@ -1607,12 +1695,12 @@ export const useGameplayCore = ({
 
       // Tránh trùng lặp (không phân biệt hoa thường)
       const exists = newEntities.some(
-        (e) => e.name.toLowerCase() === name.toLowerCase(),
+        (e) => (e.name ? e.name.trim().toLowerCase() : "") === name.toLowerCase(),
       );
       if (!exists) {
         newEntities.push({
           id: crypto.randomUUID(),
-          name: name.trim(),
+          name: name,
           type,
           description:
             description || `Thực thể được phát hiện qua hệ thống LSR.`,
